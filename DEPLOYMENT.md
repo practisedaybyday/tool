@@ -1,4 +1,17 @@
-# 🚀 Vercel 部署指南
+# 🚀 Vercel 部署指南（前后端同域）
+
+本项目采用 Monorepo 结构：
+
+- `client/`：Vite + React 前端
+- `server/`：Express API 逻辑
+- `api/index.ts`：Vercel Function 入口（复用 `server` 路由）
+
+部署后访问方式：
+
+- 前端：`/`
+- API：`/api/*`（同域，无需单独后端域名）
+
+---
 
 ## 📋 前置要求
 
@@ -6,147 +19,143 @@
 2. GitHub 账号（推荐）
 3. Node.js 18+
 
-## 🔧 本地配置
+---
 
-### 安装 Vercel CLI
-
-```bash
-npm install -g vercel
-```
-
-### 登录 Vercel
+## 🔧 本地准备
 
 ```bash
-vercel login
+cd /Users/yuanbo/ai/claude/tool
+npm install
 ```
 
-## 📦 部署步骤
+可选：本地先验证构建
 
-### 1. 推送代码到 GitHub
+```bash
+npm run build --workspace=client
+npm run build --workspace=server
+```
+
+---
+
+## 📦 方式一：通过 GitHub 自动部署（推荐）
+
+### 1) 推送代码
 
 ```bash
 git add .
-git commit -m "chore: add vercel deployment config"
+git commit -m "chore: configure vercel deployment"
 git push origin main
 ```
 
-### 2. 在 Vercel 导入项目
+### 2) 在 Vercel 导入项目
 
-1. 访问 [https://vercel.com/new](https://vercel.com/new)
-2. 选择你的 GitHub 仓库
-3. 配置构建选项：
+1. 打开 [https://vercel.com/new](https://vercel.com/new)
+2. 选择仓库
+3. 在导入页检查 **Build and Output Settings**
 
 | 设置项 | 值 |
-|--------|-----|
-| Framework Preset | Vite |
-| Build Command | `npm run build` |
+|---|---|
+| Framework Preset | `Vite` |
+| Build Command | `npm run build --workspace=client` |
 | Output Directory | `client/dist` |
 | Install Command | `npm install` |
 
-### 3. 配置环境变量（如需要）
+> 项目根目录已包含 `vercel.json`，通常会自动读取，无需手动改写。
 
-在 Vercel 项目设置中添加：
-- `NODE_ENV` = `production`
+### 3) 触发部署
 
-### 4. 部署到生产环境
+- 首次导入会自动部署一次
+- 后续推送到 `main` 自动触发生产部署
+- 推送到其他分支自动触发预览部署
 
-```bash
-# 预览部署
-npm run deploy:preview
+---
 
-# 生产部署
-npm run deploy
-```
+## 🧪 方式二：Vercel CLI 部署
 
-## 🔗 自动部署
-
-Vercel 会自动在以下情况部署：
-- 推送到主分支 → 生产环境
-- 推送到其他分支 → 预览环境
-- 打开 Pull Request → 预览环境
-
-## 🌐 域名配置
-
-### 1. 添加自定义域名
-
-1. 进入 Vercel 项目设置
-2. 点击 "Domains"
-3. 添加你的域名（如 `cron.example.com`）
-
-### 2. 配置 DNS
-
-在你的域名服务商处添加 CNAME 记录：
-
-| 类型 | 名称 | 值 |
-|------|------|-----|
-| CNAME | cron | cname.vercel-dns.com |
-
-## 📊 监控与日志
-
-- 访问 [https://vercel.com/dashboard](https://vercel.com/dashboard) 查看部署状态
-- 点击 "Logs" 查看实时日志
-- 使用 Analytics 查看访问统计
-
-## 🔙 回滚部署
+### 安装并登录
 
 ```bash
-# 查看部署历史
-vercel list
-
-# 回滚到上一个版本
-vercel rollback [deployment-url]
+npm install -g vercel
+vercel login
 ```
 
-## ⚙️ 高级配置
+### 预览部署
 
-### 自构构建脚本
-
-编辑 `vercel.json` 自定义构建流程：
-
-```json
-{
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install"
-}
+```bash
+vercel
 ```
 
-### 环境特定配置
+### 生产部署
 
-```json
-{
-  "env": {
-    "API_URL": {
-      "development": "http://localhost:3001",
-      "production": "https://api.example.com"
-    }
-  }
-}
+```bash
+vercel --prod
 ```
+
+---
+
+## ✅ 部署后验证
+
+部署完成后先检查：
+
+1. 健康检查接口：`https://<your-domain>/api/health`
+2. 页面是否可打开：`https://<your-domain>/`
+3. 页面上 Cron 解析与下次执行时间是否正常返回
+
+---
+
+## ⚙️ 当前关键配置说明
+
+### `vercel.json` 关键点
+
+- `buildCommand`: `npm run build --workspace=client`
+- `outputDirectory`: `client/dist`
+- `functions.api/index.ts.runtime`: `@vercel/node`
+- `rewrites`：
+  - `/api/(.*)` -> `/api/index.ts`
+  - `/(.*)` -> `/index.html`
+
+### API 路径约定
+
+前端统一使用相对路径：
+
+- `/api/cron/parse`
+- `/api/cron/next-runs`
+
+这样本地与线上行为一致。
+
+---
+
+## 🌐 自定义域名（可选）
+
+1. Vercel 项目 -> `Settings` -> `Domains`
+2. 添加域名（如 `cron.example.com`）
+3. 按提示在 DNS 平台添加 CNAME / A 记录
+
+---
 
 ## 🚨 常见问题
 
-### 构建失败
+### 1) 页面打开正常，但 API 404
 
-1. 检查 `node_modules` 是否已提交（不应提交）
-2. 确保 `.vercelignore` 配置正确
-3. 查看构建日志定位错误
+- 确认仓库包含 `api/index.ts`
+- 确认 `vercel.json` 中 `/api/(.*)` rewrite 指向 `/api/index.ts`
+- 在部署日志中确认 Function 构建成功
 
-### API 跨域问题
+### 2) 构建失败
 
-如果调用后端 API 遇到跨域问题：
+- 先本地运行：
+  - `npm run build --workspace=client`
+  - `npm run build --workspace=server`
+- 检查 Node 版本（建议 18+）
+- 检查 lockfile 与依赖是否一致
 
-1. 确保后端已配置 CORS
-2. 或使用 Vercel Edge Functions 作为代理
+### 3) 首屏正常，刷新子路由 404
 
-### 性能优化
+- 确认存在 fallback rewrite：`/(.*)` -> `/index.html`
 
-1. 启用 Vercel Analytics
-2. 配置图片优化
-3. 使用 CDN 加速静态资源
+---
 
-## 📚 相关链接
+## 📚 参考链接
 
 - [Vercel 文档](https://vercel.com/docs)
 - [Vite 部署指南](https://vitejs.dev/guide/static-deploy.html)
-- [项目状态页](https://vercel.com/dashboard)
