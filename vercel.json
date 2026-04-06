@@ -27,9 +27,7 @@
     }
   ],
   "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node"
-    }
+    "api/index.ts": {}
   },
   "rewrites": [
     {
