@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(kill 86555)",
+      "Bash(curl -s -X POST http://localhost:3001/api/cron/next-runs -H \"Content-Type: application/json\" -d '{\"expression\":\"0 8 * * *\",\"count\":5}')",
+      "Bash(kill 87505 87502 82246)",
+      "Bash(kill 87834)",
+      "Bash(curl:*)",
+      "Bash(pkill -f \"tsx watch src/index.ts\")",
+      "Bash(kill 82274:*)",
+      "Bash(open:*)",
+      "Bash(vercel:*)"
+    ]
+  }
+}
