@@ -26,9 +26,6 @@
       ]
     }
   ],
-  "functions": {
-    "api/index.ts": {}
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
