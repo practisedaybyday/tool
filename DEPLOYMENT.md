@@ -141,7 +141,24 @@ vercel --prod
 - 确认 `vercel.json` 中 `/api/(.*)` rewrite 指向 `/api/index.ts`
 - 在部署日志中确认 Function 构建成功
 
-### 2) 构建失败
+### 2) `FUNCTION_INVOCATION_FAILED` + `ERR_REQUIRE_ESM`
+
+典型日志：
+
+```txt
+Error [ERR_REQUIRE_ESM]: require() of ES Module ... not supported
+```
+
+原因：Vercel Function 运行在 CommonJS 包装时，直接 `require` 到 ESM 文件（例如从 `api/index.ts` 跨目录引用 `server/src/...`）会失败。
+
+处理方式：
+
+- `api/index.ts` 保持自包含（直接定义接口逻辑），避免跨目录 import ESM 路由文件
+- 或统一改造为 Vercel 兼容的单一模块输出（成本更高，不建议在当前项目采用）
+
+本项目推荐做法：保持 `api/index.ts` 中直接实现 `/api/cron/parse` 与 `/api/cron/next-runs`。
+
+### 3) 构建失败
 
 - 先本地运行：
   - `npm run build --workspace=client`
@@ -149,7 +166,7 @@ vercel --prod
 - 检查 Node 版本（建议 18+）
 - 检查 lockfile 与依赖是否一致
 
-### 3) 首屏正常，刷新子路由 404
+### 4) 首屏正常，刷新子路由 404
 
 - 确认存在 fallback rewrite：`/(.*)` -> `/index.html`
 
